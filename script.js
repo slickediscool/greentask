@@ -65,25 +65,46 @@ async function sendMessage() {
         });
         
         const data = await response.json();
-        console.log('AI API response:', data);
-
+        console.log('AI API raw response:', data);
+        console.log('AI API response type:', typeof data);
+        console.log('AI API response keys:', Object.keys(data));
+        
         removeMessage(loadingId);
 
-        // Check for different possible response structures
+        // If data is stringified JSON, try to parse it
+        let processedData = data;
+        if (typeof data === 'string') {
+            try {
+                processedData = JSON.parse(data);
+            } catch (e) {
+                console.log('Failed to parse string response');
+            }
+        }
+
+        console.log('Processed data:', processedData);
+
+        // Try different ways to access the response
         let aiResponse;
-        if (data.response) {
-            aiResponse = data.response;
-        } else if (data.body && typeof data.body === 'string') {
-            const parsedBody = JSON.parse(data.body);
-            aiResponse = parsedBody.response;
-        } else if (data.body && data.body.response) {
-            aiResponse = data.body.response;
+        if (processedData.response) {
+            aiResponse = processedData.response;
+        } else if (processedData.body) {
+            // If body is a string, try to parse it
+            if (typeof processedData.body === 'string') {
+                try {
+                    const parsedBody = JSON.parse(processedData.body);
+                    aiResponse = parsedBody.response;
+                } catch (e) {
+                    aiResponse = processedData.body;
+                }
+            } else {
+                aiResponse = processedData.body;
+            }
         }
 
         if (aiResponse) {
             addMessage(aiResponse, 'ai');
         } else {
-            console.error('Unexpected AI response structure:', data);
+            console.error('Could not find response in:', processedData);
             throw new Error('Invalid AI response structure');
         }
     } catch (error) {
@@ -92,6 +113,7 @@ async function sendMessage() {
         addMessage('Sorry, I encountered an error. Please try again.', 'ai');
     }
 }
+
 
 // Add message to chat
 function addMessage(message, sender) {
