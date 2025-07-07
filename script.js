@@ -9,11 +9,10 @@ async function fetchDailyChallenge() {
         const data = await response.json();
         console.log('Challenge API response:', data);
         
-        // Assuming the challenge data is directly in the response object
-        if (data && data.type && data.description) {
-            displayChallenge(data);
+        if (data.body) {
+            const challenge = JSON.parse(data.body);
+            displayChallenge(challenge);
         } else {
-            console.error('Invalid challenge data:', data);
             throw new Error('Invalid challenge data');
         }
     } catch (error) {
@@ -23,39 +22,60 @@ async function fetchDailyChallenge() {
     }
 }
 
-
-
 // Display challenge
 function displayChallenge(challenge) {
     console.log('Displaying challenge:', challenge);
     const challengeHtml = `
-        <h3>${challenge.type || 'Unknown Type'}</h3>
-        <p>${challenge.description || 'No description available'}</p>
-        <p>Points: ${challenge.points || 'N/A'}</p>
+        <h3>${challenge.type}</h3>
+        <p>${challenge.description}</p>
+        <p>Points: ${challenge.points}</p>
         <div class="tips">
             <h4>Tips:</h4>
             <ul>
-                ${(challenge.tips && challenge.tips.length) ? 
-                  challenge.tips.map(tip => `<li>${tip}</li>`).join('') : 
-                  '<li>No tips available</li>'}
+                ${challenge.tips.map(tip => `<li>${tip}</li>`).join('')}
             </ul>
         </div>
     `;
     document.getElementById('daily-challenge').innerHTML = challengeHtml;
 }
 
+// Helper function to remove a message by ID
+function removeMessage(id) {
+    const messageToRemove = document.getElementById(id);
+    if (messageToRemove) {
+        messageToRemove.remove();
+    }
+}
+
+// Add message to chat with unique ID
+function addMessage(message, sender) {
+    const chatMessages = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    const messageId = `msg-${Date.now()}`;
+    messageDiv.id = messageId;
+    messageDiv.className = `message ${sender}-message`;
+    messageDiv.textContent = message;
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return messageId;
+}
+
+// Send message to AI Coach
 async function sendMessage() {
     const input = document.getElementById('user-input');
     const message = input.value.trim();
     
     if (!message) return;
 
+    // Show user message
     addMessage(message, 'user');
     input.value = '';
 
+    // Show loading message
     const loadingId = addMessage('Thinking...', 'ai');
 
     try {
+        console.log('Sending message:', { message });
         const response = await fetch(AI_COACH_API, {
             method: 'POST',
             headers: {
@@ -65,72 +85,33 @@ async function sendMessage() {
         });
         
         const data = await response.json();
-        console.log('AI API raw response:', data);
-        console.log('AI API response type:', typeof data);
-        console.log('AI API response keys:', Object.keys(data));
-        
+        console.log('AI API response:', data);
+
+        // Remove loading message
         removeMessage(loadingId);
 
-        // If data is stringified JSON, try to parse it
-        let processedData = data;
-        if (typeof data === 'string') {
-            try {
-                processedData = JSON.parse(data);
-            } catch (e) {
-                console.log('Failed to parse string response');
+        // Parse the body string into JSON
+        if (data.body) {
+            const parsedBody = JSON.parse(data.body);
+            
+            // Check if there's an error
+            if (parsedBody.error) {
+                throw new Error(parsedBody.error);
             }
-        }
-
-        console.log('Processed data:', processedData);
-
-        // Try different ways to access the response
-        let aiResponse;
-        if (processedData.response) {
-            aiResponse = processedData.response;
-        } else if (processedData.body) {
-            // If body is a string, try to parse it
-            if (typeof processedData.body === 'string') {
-                try {
-                    const parsedBody = JSON.parse(processedData.body);
-                    aiResponse = parsedBody.response;
-                } catch (e) {
-                    aiResponse = processedData.body;
-                }
+            
+            // If response exists in parsed body
+            if (parsedBody.response) {
+                addMessage(parsedBody.response, 'ai');
             } else {
-                aiResponse = processedData.body;
+                throw new Error('No response from AI');
             }
-        }
-
-        if (aiResponse) {
-            addMessage(aiResponse, 'ai');
         } else {
-            console.error('Could not find response in:', processedData);
-            throw new Error('Invalid AI response structure');
+            throw new Error('Invalid response format');
         }
     } catch (error) {
-        console.error('Error sending message:', error);
+        console.error('Error:', error.message);
         removeMessage(loadingId);
-        addMessage('Sorry, I encountered an error. Please try again.', 'ai');
-    }
-}
-
-
-// Add message to chat
-function addMessage(message, sender) {
-    const chatMessages = document.getElementById('chat-messages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}-message`;
-    messageDiv.textContent = message;
-    chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    return messageDiv.id = `msg-${Date.now()}`; // Return id for potential removal
-}
-
-// Remove message from chat
-function removeMessage(id) {
-    const messageToRemove = document.getElementById(id);
-    if (messageToRemove) {
-        messageToRemove.remove();
+        addMessage(`Sorry, I encountered an error: ${error.message}`, 'ai');
     }
 }
 
@@ -153,4 +134,5 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set up enter key handler for chat input
     document.getElementById('user-input').addEventListener('keypress', handleKeyPress);
 });
+
 
