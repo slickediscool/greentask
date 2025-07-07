@@ -70,10 +70,22 @@ async function sendMessage() {
 
         removeMessage(loadingId);
 
-        if (data && data.response) {
-            addMessage(data.response, 'ai');
+        // Check for different possible response structures
+        let aiResponse;
+        if (data.response) {
+            aiResponse = data.response;
+        } else if (data.body && typeof data.body === 'string') {
+            const parsedBody = JSON.parse(data.body);
+            aiResponse = parsedBody.response;
+        } else if (data.body && data.body.response) {
+            aiResponse = data.body.response;
+        }
+
+        if (aiResponse) {
+            addMessage(aiResponse, 'ai');
         } else {
-            throw new Error('Invalid AI response');
+            console.error('Unexpected AI response structure:', data);
+            throw new Error('Invalid AI response structure');
         }
     } catch (error) {
         console.error('Error sending message:', error);
