@@ -7,9 +7,10 @@ async function fetchDailyChallenge() {
     try {
         const response = await fetch(CHALLENGE_API);
         const data = await response.json();
+        console.log('Challenge API response:', data); // Log the entire response
         if (data && data.body) {
-            // Parse the body if it's a string
             const challenge = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+            console.log('Parsed challenge:', challenge); // Log the parsed challenge
             displayChallenge(challenge);
         } else {
             console.error('Invalid challenge data:', data);
@@ -21,6 +22,7 @@ async function fetchDailyChallenge() {
             'Error loading challenge. Please try again.';
     }
 }
+
 
 // Display challenge
 function displayChallenge(challenge) {
@@ -49,7 +51,6 @@ async function sendMessage() {
     addMessage(message, 'user');
     input.value = '';
 
-    // Show loading message
     const loadingId = addMessage('Thinking...', 'ai');
 
     try {
@@ -62,13 +63,13 @@ async function sendMessage() {
         });
         
         const data = await response.json();
-        
-        // Remove loading message
+        console.log('AI API response:', data); // Log the entire response
+
         removeMessage(loadingId);
 
-        // Display AI response
         if (data && data.body) {
             const aiResponse = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+            console.log('Parsed AI response:', aiResponse); // Log the parsed response
             addMessage(aiResponse.response, 'ai');
         } else {
             throw new Error('Invalid AI response');
@@ -79,6 +80,7 @@ async function sendMessage() {
         addMessage('Sorry, I encountered an error. Please try again.', 'ai');
     }
 }
+
 
 // Add message to chat
 function addMessage(message, sender) {
