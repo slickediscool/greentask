@@ -7,7 +7,14 @@ async function fetchDailyChallenge() {
     try {
         const response = await fetch(CHALLENGE_API);
         const data = await response.json();
-        displayChallenge(data);
+        if (data && data.body) {
+            // Parse the body if it's a string
+            const challenge = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+            displayChallenge(challenge);
+        } else {
+            console.error('Invalid challenge data:', data);
+            throw new Error('Invalid challenge data');
+        }
     } catch (error) {
         console.error('Error fetching challenge:', error);
         document.getElementById('daily-challenge').innerHTML = 
@@ -17,6 +24,7 @@ async function fetchDailyChallenge() {
 
 // Display challenge
 function displayChallenge(challenge) {
+    console.log('Displaying challenge:', challenge); // Debug log
     const challengeHtml = `
         <h3>${challenge.type}</h3>
         <p>${challenge.description}</p>
@@ -41,6 +49,9 @@ async function sendMessage() {
     addMessage(message, 'user');
     input.value = '';
 
+    // Show loading message
+    const loadingId = addMessage('Thinking...', 'ai');
+
     try {
         const response = await fetch(AI_COACH_API, {
             method: 'POST',
@@ -51,9 +62,20 @@ async function sendMessage() {
         });
         
         const data = await response.json();
-        addMessage(data.response, 'ai');
+        
+        // Remove loading message
+        removeMessage(loadingId);
+
+        // Display AI response
+        if (data && data.body) {
+            const aiResponse = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+            addMessage(aiResponse.response, 'ai');
+        } else {
+            throw new Error('Invalid AI response');
+        }
     } catch (error) {
         console.error('Error sending message:', error);
+        removeMessage(loadingId);
         addMessage('Sorry, I encountered an error. Please try again.', 'ai');
     }
 }
@@ -66,6 +88,15 @@ function addMessage(message, sender) {
     messageDiv.textContent = message;
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    return messageDiv.id = `msg-${Date.now()}`; // Return id for potential removal
+}
+
+// Remove message from chat
+function removeMessage(id) {
+    const messageToRemove = document.getElementById(id);
+    if (messageToRemove) {
+        messageToRemove.remove();
+    }
 }
 
 // Handle enter key in input
@@ -75,5 +106,16 @@ function handleKeyPress(event) {
     }
 }
 
-// Load initial challenge
-fetchDailyChallenge();
+// Add event listeners when the document loads
+document.addEventListener('DOMContentLoaded', () => {
+    // Initial challenge load
+    fetchDailyChallenge();
+    
+    // Set up button click handlers
+    document.querySelector('.refresh-btn').addEventListener('click', fetchDailyChallenge);
+    document.querySelector('.send-btn').addEventListener('click', sendMessage);
+    
+    // Set up enter key handler for chat input
+    document.getElementById('user-input').addEventListener('keypress', handleKeyPress);
+});
+
