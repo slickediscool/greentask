@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenTask - Eat Clean, Live Green</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GreenTask</h1>
+            <p>Eat Clean, Live Green</p>
+        </header>
+
+        <main>
+            <section class="challenge-section">
+                <h2>Daily Challenge</h2>
+                <div id="daily-challenge" class="challenge-card">
+                    Loading challenge...
+                </div>
+                <button onclick="fetchDailyChallenge()" class="refresh-btn">
+                    Get New Challenge
+                </button>
+            </section>
+
+            <section class="ai-coach-section">
+                <h2>AI Food Coach</h2>
+                <div class="chat-container">
+                    <div id="chat-messages" class="chat-messages"></div>
+                    <div class="chat-input">
+                        <input type="text" id="user-input" 
+                               placeholder="Ask about healthy eating..."
+                               onkeypress="handleKeyPress(event)">
+                        <button onclick="sendMessage()" class="send-btn">Send</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
