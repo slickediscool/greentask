@@ -44,7 +44,6 @@ function displayChallenge(challenge) {
     document.getElementById('daily-challenge').innerHTML = challengeHtml;
 }
 
-// Send message to AI Coach
 async function sendMessage() {
     const input = document.getElementById('user-input');
     const message = input.value.trim();
@@ -93,8 +92,6 @@ async function sendMessage() {
         addMessage('Sorry, I encountered an error. Please try again.', 'ai');
     }
 }
-
-
 
 // Add message to chat
 function addMessage(message, sender) {
