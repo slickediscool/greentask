@@ -7,11 +7,11 @@ async function fetchDailyChallenge() {
     try {
         const response = await fetch(CHALLENGE_API);
         const data = await response.json();
-        console.log('Challenge API response:', data);
+        console.log('Challenge API raw response:', data);
         
-        if (data.body) {
-            const challenge = JSON.parse(data.body);
-            displayChallenge(challenge);
+        // The challenge data is directly in the response, not in a body property
+        if (data && data.type) {
+            displayChallenge(data);
         } else {
             throw new Error('Invalid challenge data');
         }
@@ -75,35 +75,35 @@ async function sendMessage() {
     const loadingId = addMessage('Thinking...', 'ai');
 
     try {
-        console.log('Sending message:', { message });
+        const payload = { message: message };
+        console.log('Sending message payload:', payload);
+        
         const response = await fetch(AI_COACH_API, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ message: message })
+            body: JSON.stringify(payload)
         });
         
         const data = await response.json();
-        console.log('AI API response:', data);
+        console.log('AI API raw response:', data);
 
         // Remove loading message
         removeMessage(loadingId);
 
-        // Parse the body string into JSON
+        if (data.statusCode === 400) {
+            throw new Error(JSON.parse(data.body).error || 'Bad request');
+        }
+
         if (data.body) {
             const parsedBody = JSON.parse(data.body);
-            
-            // Check if there's an error
-            if (parsedBody.error) {
-                throw new Error(parsedBody.error);
-            }
-            
-            // If response exists in parsed body
             if (parsedBody.response) {
                 addMessage(parsedBody.response, 'ai');
+            } else if (parsedBody.error) {
+                throw new Error(parsedBody.error);
             } else {
-                throw new Error('No response from AI');
+                throw new Error('Unexpected response format');
             }
         } else {
             throw new Error('Invalid response format');
