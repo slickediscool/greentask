@@ -54,7 +54,14 @@ function addMessage(message, sender) {
     const messageId = `msg-${Date.now()}`;
     messageDiv.id = messageId;
     messageDiv.className = `message ${sender}-message`;
-    messageDiv.textContent = message;
+    
+    // Check if the message contains HTML
+    if (message.includes('<')) {
+        messageDiv.innerHTML = message;
+    } else {
+        messageDiv.textContent = message;
+    }
+    
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     return messageId;
@@ -67,57 +74,45 @@ async function sendMessage() {
     
     if (!message) return;
 
-    // Show user message
     addMessage(message, 'user');
     input.value = '';
 
-    // Show loading message
     const loadingId = addMessage('Thinking...', 'ai');
 
     try {
-        const payload = { message };
-        console.log('Sending payload:', payload);
-        console.log('Stringified payload:', JSON.stringify(payload));
-
         const response = await fetch(AI_COACH_API, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ message: message })
         });
         
-        console.log('Response status:', response.status);
         const data = await response.json();
-        console.log('AI API raw response:', data);
+        console.log('AI API response:', data);
 
-        // Remove loading message
         removeMessage(loadingId);
 
         if (data.statusCode === 400) {
-            const errorBody = JSON.parse(data.body);
-            throw new Error(errorBody.error || 'Bad request');
+            throw new Error(JSON.parse(data.body).error || 'Bad request');
         }
 
         if (data.body) {
             const parsedBody = JSON.parse(data.body);
             if (parsedBody.response) {
                 addMessage(parsedBody.response, 'ai');
-            } else if (parsedBody.error) {
-                throw new Error(parsedBody.error);
+            } else {
+                throw new Error('Unexpected response format');
             }
         } else {
             throw new Error('Invalid response format');
         }
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error:', error.message);
         removeMessage(loadingId);
         addMessage(`Sorry, I encountered an error: ${error.message}`, 'ai');
     }
 }
-
-
 
 // Handle enter key in input
 function handleKeyPress(event) {
