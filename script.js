@@ -7,11 +7,11 @@ async function fetchDailyChallenge() {
     try {
         const response = await fetch(CHALLENGE_API);
         const data = await response.json();
-        console.log('Challenge API response:', data); // Log the entire response
-        if (data && data.body) {
-            const challenge = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
-            console.log('Parsed challenge:', challenge); // Log the parsed challenge
-            displayChallenge(challenge);
+        console.log('Challenge API response:', data);
+        
+        // Assuming the challenge data is directly in the response object
+        if (data && data.type && data.description) {
+            displayChallenge(data);
         } else {
             console.error('Invalid challenge data:', data);
             throw new Error('Invalid challenge data');
@@ -24,17 +24,20 @@ async function fetchDailyChallenge() {
 }
 
 
+
 // Display challenge
 function displayChallenge(challenge) {
-    console.log('Displaying challenge:', challenge); // Debug log
+    console.log('Displaying challenge:', challenge);
     const challengeHtml = `
-        <h3>${challenge.type}</h3>
-        <p>${challenge.description}</p>
-        <p>Points: ${challenge.points}</p>
+        <h3>${challenge.type || 'Unknown Type'}</h3>
+        <p>${challenge.description || 'No description available'}</p>
+        <p>Points: ${challenge.points || 'N/A'}</p>
         <div class="tips">
             <h4>Tips:</h4>
             <ul>
-                ${challenge.tips.map(tip => `<li>${tip}</li>`).join('')}
+                ${(challenge.tips && challenge.tips.length) ? 
+                  challenge.tips.map(tip => `<li>${tip}</li>`).join('') : 
+                  '<li>No tips available</li>'}
             </ul>
         </div>
     `;
@@ -63,14 +66,12 @@ async function sendMessage() {
         });
         
         const data = await response.json();
-        console.log('AI API response:', data); // Log the entire response
+        console.log('AI API response:', data);
 
         removeMessage(loadingId);
 
-        if (data && data.body) {
-            const aiResponse = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
-            console.log('Parsed AI response:', aiResponse); // Log the parsed response
-            addMessage(aiResponse.response, 'ai');
+        if (data && data.response) {
+            addMessage(data.response, 'ai');
         } else {
             throw new Error('Invalid AI response');
         }
@@ -80,6 +81,7 @@ async function sendMessage() {
         addMessage('Sorry, I encountered an error. Please try again.', 'ai');
     }
 }
+
 
 
 // Add message to chat
