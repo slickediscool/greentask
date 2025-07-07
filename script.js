@@ -55,17 +55,14 @@ function addMessage(message, sender) {
     messageDiv.id = messageId;
     messageDiv.className = `message ${sender}-message`;
     
-    // Check if the message contains HTML
-    if (message.includes('<')) {
-        messageDiv.innerHTML = message;
-    } else {
-        messageDiv.textContent = message;
-    }
+    // Always use innerHTML to render the message
+    messageDiv.innerHTML = message;
     
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     return messageId;
 }
+
 
 // Send message to AI Coach
 async function sendMessage() {
