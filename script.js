@@ -75,17 +75,20 @@ async function sendMessage() {
     const loadingId = addMessage('Thinking...', 'ai');
 
     try {
-        const payload = { message: message };
-        console.log('Sending message payload:', payload);
-        
+        const payload = { message };
+        console.log('Sending payload:', payload);
+        console.log('Stringified payload:', JSON.stringify(payload));
+
         const response = await fetch(AI_COACH_API, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             body: JSON.stringify(payload)
         });
         
+        console.log('Response status:', response.status);
         const data = await response.json();
         console.log('AI API raw response:', data);
 
@@ -93,7 +96,8 @@ async function sendMessage() {
         removeMessage(loadingId);
 
         if (data.statusCode === 400) {
-            throw new Error(JSON.parse(data.body).error || 'Bad request');
+            const errorBody = JSON.parse(data.body);
+            throw new Error(errorBody.error || 'Bad request');
         }
 
         if (data.body) {
@@ -102,18 +106,18 @@ async function sendMessage() {
                 addMessage(parsedBody.response, 'ai');
             } else if (parsedBody.error) {
                 throw new Error(parsedBody.error);
-            } else {
-                throw new Error('Unexpected response format');
             }
         } else {
             throw new Error('Invalid response format');
         }
     } catch (error) {
-        console.error('Error:', error.message);
+        console.error('Error:', error);
         removeMessage(loadingId);
         addMessage(`Sorry, I encountered an error: ${error.message}`, 'ai');
     }
 }
+
+
 
 // Handle enter key in input
 function handleKeyPress(event) {
